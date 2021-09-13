@@ -15,14 +15,20 @@ namespace Azure.Analytics.Synapse.Artifacts.Models
     {
         /// <summary> Initializes a new instance of ExecuteDataFlowActivity. </summary>
         /// <param name="name"> Activity name. </param>
-        /// <exception cref="ArgumentNullException"> <paramref name="name"/> is null. </exception>
-        public ExecuteDataFlowActivity(string name) : base(name)
+        /// <param name="dataflow"> Data flow reference. </param>
+        /// <exception cref="ArgumentNullException"> <paramref name="name"/> or <paramref name="dataflow"/> is null. </exception>
+        public ExecuteDataFlowActivity(string name, DataFlowReference dataflow) : base(name)
         {
             if (name == null)
             {
                 throw new ArgumentNullException(nameof(name));
             }
+            if (dataflow == null)
+            {
+                throw new ArgumentNullException(nameof(dataflow));
+            }
 
+            Dataflow = dataflow;
             Type = "ExecuteDataFlow";
         }
 
@@ -32,7 +38,7 @@ namespace Azure.Analytics.Synapse.Artifacts.Models
         /// <param name="description"> Activity description. </param>
         /// <param name="dependsOn"> Activity depends on condition. </param>
         /// <param name="userProperties"> Activity user properties. </param>
-        /// <param name="additionalProperties"> . </param>
+        /// <param name="additionalProperties"> Additional Properties. </param>
         /// <param name="linkedServiceName"> Linked service reference. </param>
         /// <param name="policy"> Activity policy. </param>
         /// <param name="dataflow"> Data flow reference. </param>

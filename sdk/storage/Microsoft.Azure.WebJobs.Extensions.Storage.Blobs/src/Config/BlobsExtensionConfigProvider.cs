@@ -225,6 +225,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Storage.Blobs.Config
                 typeof(AppendBlobClient),
                 typeof(TextReader),
                 typeof(Stream),
+                typeof(BinaryData),
                 typeof(string)
             };
 

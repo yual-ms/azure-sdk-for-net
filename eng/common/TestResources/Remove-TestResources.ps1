@@ -37,8 +37,8 @@ param (
     [Parameter(ParameterSetName = 'Default+Provisioner', Mandatory = $true)]
     [Parameter(ParameterSetName = 'ResourceGroup+Provisioner', Mandatory = $true)]
     [string] $ProvisionerApplicationSecret,
-    
-    [Parameter(ParameterSetName = 'Default', Mandatory = $true, Position = 0)]
+
+    [Parameter(ParameterSetName = 'Default', Position = 0)]
     [Parameter(ParameterSetName = 'Default+Provisioner')]
     [Parameter(ParameterSetName = 'ResourceGroup')]
     [Parameter(ParameterSetName = 'ResourceGroup+Provisioner')]
@@ -60,6 +60,21 @@ param (
 if (!$PSBoundParameters.ContainsKey('ErrorAction')) {
     $ErrorActionPreference = 'Stop'
 }
+
+# Support actions to invoke on exit.
+$exitActions = @({
+    if ($exitActions.Count -gt 1) {
+        Write-Verbose 'Running registered exit actions.'
+    }
+})
+
+trap {
+    # Like using try..finally in PowerShell, but without keeping track of more braces or tabbing content.
+    $exitActions.Invoke()
+}
+
+# Source helpers to purge resources.
+. "$PSScriptRoot\..\scripts\Helpers\Resource-Helpers.ps1"
 
 function Log($Message) {
     Write-Host ('{0} - {1}' -f [DateTime]::Now.ToLongTimeString(), $Message)
@@ -86,18 +101,6 @@ function Retry([scriptblock] $Action, [int] $Attempts = 5) {
     }
 }
 
-# Support actions to invoke on exit.
-$exitActions = @({
-    if ($exitActions.Count -gt 1) {
-        Write-Verbose 'Running registered exit actions.'
-    }
-})
-
-trap {
-    # Like using try..finally in PowerShell, but without keeping track of more braces or tabbing content.
-    $exitActions.Invoke()
-}
-
 if ($ProvisionerApplicationId) {
     $null = Disable-AzContextAutosave -Scope Process
 
@@ -122,18 +125,17 @@ if ($ProvisionerApplicationId) {
 
 $context = Get-AzContext
 
-# Make sure $BaseName is set.
-if (!$BaseName) {
-
-    $UserName =  if ($env:USER) { $env:USER } else { "${env:USERNAME}" }
-    # Remove spaces, etc. that may be in $UserName
-    $UserName = $UserName -replace '\W'
-
-    $BaseName = "$UserName$ServiceDirectory"
-    Log "BaseName was not set. Using default base name '$BaseName'"
-}
-
 if (!$ResourceGroupName) {
+    # Make sure $BaseName is set.
+    if (!$BaseName) {
+        $UserName = if ($env:USER) { $env:USER } else { "${env:USERNAME}" }
+        # Remove spaces, etc. that may be in $UserName
+        $UserName = $UserName -replace '\W'
+
+        $BaseName = "$UserName$ServiceDirectory"
+        Log "BaseName was not set. Using default base name '$BaseName'"
+    }
+
     # Format the resource group name like in New-TestResources.ps1.
     $ResourceGroupName = "rg-$BaseName"
 }
@@ -214,15 +216,22 @@ $verifyDeleteScript = {
     }
 }
 
+# Get any resources that can be purged after the resource group is deleted coerced into a collection even if empty.
+$purgeableResources = Get-PurgeableGroupResources $ResourceGroupName
+
 Log "Deleting resource group '$ResourceGroupName'"
-if ($Force) {
+if ($Force -and !$purgeableResources) {
     Remove-AzResourceGroup -Name "$ResourceGroupName" -Force:$Force -AsJob
+    Write-Verbose "Running background job to delete resource group '$ResourceGroupName'"
+
     Retry $verifyDeleteScript 3
-    Write-Verbose "Requested async deletion of resource group '$ResourceGroupName'"
 } else {
     # Don't swallow interactive confirmation when Force is false
     Remove-AzResourceGroup -Name "$ResourceGroupName" -Force:$Force
 }
+
+# Now purge the resources that should have been deleted with the resource group.
+Remove-PurgeableResources $purgeableResources
 
 $exitActions.Invoke()
 

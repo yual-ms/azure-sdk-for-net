@@ -8,11 +8,11 @@ Run `dotnet build /t:GenerateCode` to generate code.
 ``` yaml
 tag: package-artifacts-2019-06-01-preview
 require:
-    - https://github.com/Azure/azure-rest-api-specs/blob/ba2d430b967bc6299fbedb8dc16ff039e08e1388/specification/synapse/data-plane/readme.md
+    - https://github.com/Azure/azure-rest-api-specs/blob/fc5e2fbcfc3f585d38bdb1c513ce1ad2c570cf3d/specification/synapse/data-plane/readme.md
 namespace: Azure.Analytics.Synapse.Artifacts
 public-clients: true
-credential-types: TokenCredential
-credential-scopes: https://dev.azuresynapse.net/.default
+security: AADToken
+security-scopes: https://dev.azuresynapse.net/.default
 modelerfour:
   lenient-model-deduplication: true
 ```
@@ -36,12 +36,14 @@ directive:
     for (var path in $)
     {
       if (path.endsWith("AvroFormat") ||
+          path.endsWith("CreateDataFlowDebugSessionRequest") ||
           path.endsWith("CopyBehaviorType") ||
           path.endsWith("CopyTranslator") ||
           path.endsWith("DataFlowDebugPreviewDataRequest") ||
           path.endsWith("DataFlowDebugQueryResponse") ||
           path.endsWith("DataFlowDebugResultResponse") ||
           path.endsWith("DataFlowDebugStatisticsRequest") ||
+          path.endsWith("DataFlowDebugPackage") ||
           path.endsWith("DatasetDataElement") ||
           path.endsWith("DatasetSchemaDataElement") ||
           path.endsWith("DatasetStorageFormat") ||

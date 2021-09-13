@@ -122,7 +122,7 @@ namespace Azure.Messaging.ServiceBus.Tests.Client
                 var client = new ServiceBusClient(TestEnvironment.ServiceBusConnectionString);
                 var sender = client.CreateSender(scope.QueueName);
 
-                var message = GetMessage(useSessions ? "sessionId" : null);
+                var message = ServiceBusTestUtilities.GetMessage(useSessions ? "sessionId" : null);
                 await sender.SendMessageAsync(message);
                 await sender.DisposeAsync();
                 ServiceBusReceiver receiver;
@@ -166,7 +166,7 @@ namespace Azure.Messaging.ServiceBus.Tests.Client
                 var client = new ServiceBusClient(TestEnvironment.ServiceBusConnectionString);
                 var sender = client.CreateSender(scope.QueueName);
 
-                var message = GetMessage(useSessions ? "sessionId" : null);
+                var message = ServiceBusTestUtilities.GetMessage(useSessions ? "sessionId" : null);
                 await sender.SendMessageAsync(message);
                 await sender.DisposeAsync();
                 ServiceBusReceiver receiver;
@@ -202,14 +202,21 @@ namespace Azure.Messaging.ServiceBus.Tests.Client
         {
             await using (var scope = await ServiceBusScope.CreateWithQueue(enablePartitioning: false, enableSession: true))
             {
-                var client = new ServiceBusClient(TestEnvironment.ServiceBusConnectionString);
-                var duration = TimeSpan.FromSeconds(3);
+                var client = CreateClient(60);
+                var duration = TimeSpan.FromSeconds(5);
                 using var cancellationTokenSource = new CancellationTokenSource(duration);
 
                 var start = DateTime.UtcNow;
                 Assert.ThrowsAsync<TaskCanceledException>(async () => await client.AcceptNextSessionAsync(scope.QueueName, cancellationToken: cancellationTokenSource.Token));
                 var stop = DateTime.UtcNow;
 
+                Assert.Less(stop - start, duration.Add(duration));
+                var sender = client.CreateSender(scope.QueueName);
+                await sender.SendMessageAsync(ServiceBusTestUtilities.GetMessage("sessionId"));
+
+                start = DateTime.UtcNow;
+                var receiver = await client.AcceptNextSessionAsync(scope.QueueName);
+                stop = DateTime.UtcNow;
                 Assert.Less(stop - start, duration.Add(duration));
             }
         }
