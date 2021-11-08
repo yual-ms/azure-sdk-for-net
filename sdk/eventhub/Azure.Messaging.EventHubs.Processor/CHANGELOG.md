@@ -1,14 +1,18 @@
 # Release History
 
-## 5.7.0-beta.1 (Unreleased)
+## 5.7.0-beta.1 (2021-11-09)
 
-### Features Added
+### Other Changes
 
-### Breaking Changes
+- Added additional heuristics for the `EventProcessorClient` load balancing cycle to help discover issues that can impact processor performance and stability; these validations will produce warnings should potential concerns be found.
+
+- `EventProcessorClient` will now log a verbose message indicating what event position was chosen to read from when initializing a partition.
+
+## 5.6.2 (2021-10-05)
 
 ### Bugs Fixed
 
-### Other Changes
+- Dependencies have been updated to resolve an error when creating `EventSource` instances when used with Xamarin.
 
 ## 5.6.1 (2021-09-08)
 
